@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+
+    <!-- ========================= -->
+    <!-- std::vector<T>           -->
+    <!-- ========================= -->
+    <Type Name="std::vector&lt;*&gt;">
+    <DisplayString>{{ size = {_M_impl._M_finish - _M_impl._M_start} }}</DisplayString>
+    <Expand>
+        <Item Name="size">_M_impl._M_finish - _M_impl._M_start</Item>
+        <Item Name="capacity">_M_impl._M_end_of_storage - _M_impl._M_start</Item>
+        <ArrayItems>
+        <Size>_M_impl._M_finish - _M_impl._M_start</Size>
+        <ValuePointer>_M_impl._M_start</ValuePointer>
+        </ArrayItems>
+    </Expand>
+    </Type>
+
+    <!-- ========================= -->
+    <!-- std::string               -->
+    <!-- ========================= -->
+    <Type Name="std::basic_string&lt;char, *&gt;">
+    <DisplayString>{{ "{_M_dataplus._M_p}" }}</DisplayString>
+    <Expand>
+        <Item Name="size">_M_string_length</Item>
+        <Item Name="capacity">_M_allocated_capacity</Item>
+        <StringView>_M_dataplus._M_p</StringView>
+    </Expand>
+    </Type>
+
+    <!-- ========================= -->
+    <!-- std::array<T, N>          -->
+    <!-- ========================= -->
+    <Type Name="std::array&lt;*, *&gt;">
+    <DisplayString>{{ size = { _Nm } }}</DisplayString>
+    <Expand>
+        <ArrayItems>
+        <Size>_Nm</Size>
+        <ValuePointer>_M_elems</ValuePointer>
+        </ArrayItems>
+    </Expand>
+    </Type>
+
+    <!-- ========================= -->
+    <!-- std::optional<T>          -->
+    <!-- ========================= -->
+    <Type Name="std::optional&lt;*&gt;">
+    <DisplayString Condition="_M_engaged == false">empty</DisplayString>
+    <DisplayString Condition="_M_engaged == true">{{ value = {_M_payload._M_value} }}</DisplayString>
+    <Expand>
+        <Item Name="has_value">_M_engaged</Item>
+        <Item Name="value" Condition="_M_engaged == true">_M_payload._M_value</Item>
+    </Expand>
+    </Type>
+
+    <!-- ========================= -->
+    <!-- std::unique_ptr<T>        -->
+    <!-- ========================= -->
+    <Type Name="std::unique_ptr&lt;*, *&gt;">
+    <DisplayString>{{ ptr = {_M_t._M_ptr} }}</DisplayString>
+    <Expand>
+        <Item Name="pointer">_M_t._M_ptr</Item>
+        <Item Name="value" Condition="_M_t._M_ptr != 0">*_M_t._M_ptr</Item>
+    </Expand>
+    </Type>
+
+    <!-- ========================= -->
+    <!-- std::shared_ptr<T>        -->
+    <!-- ========================= -->
+    <Type Name="std::shared_ptr&lt;*&gt;">
+    <DisplayString>{{ ptr = {_M_ptr} }}</DisplayString>
+    <Expand>
+        <Item Name="pointer">_M_ptr</Item>
+        <Item Name="value" Condition="_M_ptr != 0">*_M_ptr</Item>
+        <Item Name="use_count" Condition="_M_refcount._M_pi != 0">_M_refcount._M_pi->_M_use_count</Item>
+    </Expand>
+    </Type>
+
+    <!-- ========================= -->
+    <!-- std::map<Key, T>          -->
+    <!-- ========================= -->
+    <Type Name="std::map&lt;*,*&gt;">
+    <DisplayString>{{ size = {_M_t._M_impl._M_node_count} }}</DisplayString>
+    <Expand>
+        <Item Name="size">_M_t._M_impl._M_node_count</Item>
+        <TreeItems>
+        <Size>_M_t._M_impl._M_node_count</Size>
+        <HeadPointer>_M_t._M_impl._M_header._M_parent</HeadPointer>
+        <LeftPointer>_M_left</LeftPointer>
+        <RightPointer>_M_right</RightPointer>
+        <ValueNode>
+            <Item Name="key">_M_value_field.first</Item>
+            <Item Name="value">_M_value_field.second</Item>
+        </ValueNode>
+        </TreeItems>
+    </Expand>
+    </Type>
+
+</AutoVisualizer>

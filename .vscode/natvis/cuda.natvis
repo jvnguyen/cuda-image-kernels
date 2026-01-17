@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+
+  <!-- ========================================================= -->
+  <!-- dim3 (threadIdx, blockIdx, blockDim, gridDim)             -->
+  <!-- ========================================================= -->
+  <Type Name="dim3">
+    <DisplayString>{{ x={x}, y={y}, z={z} }}</DisplayString>
+    <Expand>
+      <Item Name="x">x</Item>
+      <Item Name="y">y</Item>
+      <Item Name="z">z</Item>
+    </Expand>
+  </Type>
+
+  <!-- ========================================================= -->
+  <!-- float3 / float4 / int3 / int4 / uint3 / uint4             -->
+  <!-- ========================================================= -->
+  <Type Name="float3">
+    <DisplayString>{{ {x}, {y}, {z} }}</DisplayString>
+    <Expand>
+      <Item Name="x">x</Item>
+      <Item Name="y">y</Item>
+      <Item Name="z">z</Item>
+    </Expand>
+  </Type>
+
+  <Type Name="float4">
+    <DisplayString>{{ {x}, {y}, {z}, {w} }}</DisplayString>
+    <Expand>
+      <Item Name="x">x</Item>
+      <Item Name="y">y</Item>
+      <Item Name="z">z</Item>
+      <Item Name="w">w</Item>
+    </Expand>
+  </Type>
+
+  <Type Name="int3">
+    <DisplayString>{{ {x}, {y}, {z} }}</DisplayString>
+  </Type>
+
+  <Type Name="int4">
+    <DisplayString>{{ {x}, {y}, {z}, {w} }}</DisplayString>
+  </Type>
+
+  <Type Name="uint3">
+    <DisplayString>{{ {x}, {y}, {z} }}</DisplayString>
+  </Type>
+
+  <Type Name="uint4">
+    <DisplayString>{{ {x}, {y}, {z}, {w} }}</DisplayString>
+  </Type>
+
+  <!-- ========================================================= -->
+  <!-- cudaError_t (symbolic names instead of raw ints)          -->
+  <!-- ========================================================= -->
+  <Type Name="cudaError">
+    <DisplayString>{{ _cudaGetErrorEnum(this) }}</DisplayString>
+  </Type>
+
+  <Function Name="_cudaGetErrorEnum">
+    <Switch>
+      <Case Condition="$ == 0">cudaSuccess</Case>
+      <Case Condition="$ == 1">cudaErrorMissingConfiguration</Case>
+      <Case Condition="$ == 2">cudaErrorMemoryAllocation</Case>
+      <Case Condition="$ == 3">cudaErrorInitializationError</Case>
+      <Case Condition="$ == 4">cudaErrorLaunchFailure</Case>
+      <Case Condition="$ == 5">cudaErrorPriorLaunchFailure</Case>
+      <Case Condition="$ == 6">cudaErrorLaunchTimeout</Case>
+      <Case Condition="$ == 7">cudaErrorLaunchOutOfResources</Case>
+      <Case Condition="$ == 8">cudaErrorInvalidDeviceFunction</Case>
+      <Case Condition="$ == 9">cudaErrorInvalidConfiguration</Case>
+      <Case Condition="$ == 10">cudaErrorInvalidDevice</Case>
+      <Default>Unknown cudaError</Default>
+    </Switch>
+  </Function>
+
+  <!-- ========================================================= -->
+  <!-- cudaMemcpyKind                                            -->
+  <!-- ========================================================= -->
+  <Type Name="cudaMemcpyKind">
+    <DisplayString>{{ _cudaMemcpyKindEnum(this) }}</DisplayString>
+  </Type>
+
+  <Function Name="_cudaMemcpyKindEnum">
+    <Switch>
+      <Case Condition="$ == 1">cudaMemcpyHostToHost</Case>
+      <Case Condition="$ == 2">cudaMemcpyHostToDevice</Case>
+      <Case Condition="$ == 3">cudaMemcpyDeviceToHost</Case>
+      <Case Condition="$ == 4">cudaMemcpyDeviceToDevice</Case>
+      <Case Condition="$ == 5">cudaMemcpyDefault</Case>
+      <Default>Unknown cudaMemcpyKind</Default>
+    </Switch>
+  </Function>
+
+  <!-- ========================================================= -->
+  <!-- cudaDeviceProp (summarized view)                          -->
+  <!-- ========================================================= -->
+  <Type Name="cudaDeviceProp">
+    <DisplayString>{{ {name}, CC={major}.{minor}, SMs={multiProcessorCount} }}</DisplayString>
+    <Expand>
+      <Item Name="name">name</Item>
+      <Item Name="compute capability">major</Item>
+      <Item Name="multiprocessors">multiProcessorCount</Item>
+      <Item Name="maxThreadsPerBlock">maxThreadsPerBlock</Item>
+      <Item Name="maxThreadsDim">maxThreadsDim</Item>
+      <Item Name="maxGridSize">maxGridSize</Item>
+      <Item Name="sharedMemPerBlock">sharedMemPerBlock</Item>
+      <Item Name="regsPerBlock">regsPerBlock</Item>
+      <Item Name="warpSize">warpSize</Item>
+    </Expand>
+  </Type>
+
+  <!-- ========================================================= -->
+  <!-- cudaPitchedPtr                                            -->
+  <!-- ========================================================= -->
+  <Type Name="cudaPitchedPtr">
+    <DisplayString>{{ ptr={ptr}, pitch={pitch}, xsize={xsize}, ysize={ysize} }}</DisplayString>
+    <Expand>
+      <Item Name="ptr">ptr</Item>
+      <Item Name="pitch">pitch</Item>
+      <Item Name="xsize">xsize</Item>
+      <Item Name="ysize">ysize</Item>
+    </Expand>
+  </Type>
+
+  <!-- ========================================================= -->
+  <!-- cudaExtent                                                -->
+  <!-- ========================================================= -->
+  <Type Name="cudaExtent">
+    <DisplayString>{{ {width} x {height} x {depth} }}</DisplayString>
+  </Type>
+
+  <!-- ========================================================= -->
+  <!-- thrust::device_vector<T> (host-side metadata only)        -->
+  <!-- ========================================================= -->
+  <Type Name="thrust::device_vector&lt;*&gt;">
+    <DisplayString>{{ size = {_M_size} }}</DisplayString>
+    <Expand>
+      <Item Name="size">_M_size</Item>
+      <Item Name="capacity">_M_capacity</Item>
+      <Item Name="data (device ptr)">_M_data</Item>
+    </Expand>
+  </Type>
+
+</AutoVisualizer>

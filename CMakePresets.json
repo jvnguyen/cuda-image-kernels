@@ -1,0 +1,45 @@
+{
+  "version": 3,
+
+  "configurePresets": [
+    {
+      "name": "debug",
+      "displayName": "Debug (WSL, CUDA)",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_CUDA_ARCHITECTURES": "86"
+      },
+      "environment": {
+        "PATH": "/usr/local/cuda/bin:$penv{PATH}",
+        "LD_LIBRARY_PATH": "/usr/local/cuda/lib64:$penv{LD_LIBRARY_PATH}"
+      }
+    },
+    {
+      "name": "release",
+      "displayName": "Release (WSL, CUDA)",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_CUDA_ARCHITECTURES": "86"
+      },
+      "environment": {
+        "PATH": "/usr/local/cuda/bin:$penv{PATH}",
+        "LD_LIBRARY_PATH": "/usr/local/cuda/lib64:$penv{LD_LIBRARY_PATH}"
+      }
+    }
+  ],
+
+  "buildPresets": [
+    {
+      "name": "debug",
+      "configurePreset": "debug"
+    },
+    {
+      "name": "release",
+      "configurePreset": "release"
+    }
+  ]
+}
