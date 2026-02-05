@@ -175,6 +175,18 @@ void handleNormalize(const KernelContext& ctx, float param, const std::string& e
 }
 
 // ============================================================
+// Greyscale to RGBA Conversion
+// ============================================================
+
+void convertGreyscaleToRGBA(const KernelContext& ctx, unsigned char* input, unsigned char* output)
+{
+    launchKernel<GreyscaleToRGBAKernelTag, unsigned char, unsigned char>(
+        input, output, ctx.width, ctx.height, ctx.grid, ctx.block
+    );
+    check(cudaDeviceSynchronize(), "greyscale to RGBA conversion sync");
+}
+
+// ============================================================
 // Kernel Handler Registry
 // ============================================================
 

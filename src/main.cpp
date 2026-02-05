@@ -2,9 +2,12 @@
 #include <vector>
 #include <string>
 #include <sstream>
+#include <cstdlib>
+#include <cstring>
 #include <cuda_runtime.h>
 
 #include "kernel_handlers.h"
+#include "png_utils.h"
 
 // Simple CUDA error check helper
 static void check(cudaError_t err, const char* msg) {
@@ -17,7 +20,7 @@ static void check(cudaError_t err, const char* msg) {
 
 // Print usage information
 static void printUsage(const char* programName) {
-    std::cout << "Usage: " << programName << " <kernel1> [options1] [kernel2] [options2] ...\n"
+    std::cout << "Usage: " << programName << " --input <input.png> [kernel1] [options1] [kernel2] [options2] ... --output <output.png>\n"
               << "\nKernels:\n"
               << "  greyscale   - Convert RGB to grayscale\n"
               << "  threshold   - Apply binary threshold\n"
@@ -35,22 +38,32 @@ static void printUsage(const char* programName) {
               << "  reorder --reorder <format>      - Channel reorder format (default: RGBA)\n"
               << "  normalize                       - Takes no parameters\n"
               << "\nExamples:\n"
-              << "  " << programName << " greyscale\n"
-              << "  " << programName << " greyscale brightness --brightness 1.5\n"
-              << "  " << programName << " normalize threshold --threshold 0.5 brightness --brightness 1.2\n"
-              << "  " << programName << " greyscale invert normalize\n";
+              << "  " << programName << " --input input.png greyscale --output output.png\n"
+              << "  " << programName << " --input input.png greyscale brightness --brightness 1.5 --output output.png\n"
+              << "  " << programName << " --input in.png normalize threshold --threshold 0.5 brightness --brightness 1.2 --output out.png\n";
 }
 
 // Parse command line into filter operations
-static std::vector<FilterOperation> parseFilters(int argc, char* argv[]) {
+static std::vector<FilterOperation> parseFilters(int argc, char* argv[], 
+                                                  std::string& inputFile, std::string& outputFile) {
     std::vector<FilterOperation> filters;
-    
-    if (argc < 2) {
-        return filters;
-    }
+    inputFile = "";
+    outputFile = "";
 
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
+        
+        // Parse --input
+        if (arg == "--input" && i + 1 < argc) {
+            inputFile = argv[++i];
+            continue;
+        }
+        
+        // Parse --output
+        if (arg == "--output" && i + 1 < argc) {
+            outputFile = argv[++i];
+            continue;
+        }
         
         // Check if this is a kernel name
         if (kernelHandlers.find(arg) != kernelHandlers.end()) {
@@ -92,8 +105,22 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 
-    // Parse filter pipeline
-    std::vector<FilterOperation> filters = parseFilters(argc, argv);
+    // Parse command line arguments
+    std::string inputFile, outputFile;
+    std::vector<FilterOperation> filters = parseFilters(argc, argv, inputFile, outputFile);
+    
+    // Validate input/output files
+    if (inputFile.empty()) {
+        std::cerr << "Error: No input file specified (use --input <file.png>)\n";
+        printUsage(argv[0]);
+        return 1;
+    }
+    
+    if (outputFile.empty()) {
+        std::cerr << "Error: No output file specified (use --output <file.png>)\n";
+        printUsage(argv[0]);
+        return 1;
+    }
     
     if (filters.empty()) {
         std::cerr << "Error: No valid kernels specified\n";
@@ -101,39 +128,29 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    std::cout << "Filter pipeline: ";
+    std::cout << "\n=== Image Filter Pipeline ===\n";
+    std::cout << "Filters: ";
     for (size_t i = 0; i < filters.size(); ++i) {
         std::cout << filters[i].kernel_type;
         if (i < filters.size() - 1) std::cout << " -> ";
     }
     std::cout << "\n\n";
 
-    // ----------------------------------------------------------------
-    // Create a small synthetic RGBA image (e.g., 8×8)
-    // ----------------------------------------------------------------
-    const int width  = 8;
-    const int height = 8;
-    const int pixels = width * height;
-
-    std::vector<unsigned char> rgb(4 * pixels);
-    std::vector<unsigned char> grey(pixels);
-    std::vector<unsigned char> mask(pixels);
-    std::vector<unsigned char> inverted(pixels);
-    std::vector<unsigned char> brightened(pixels);
-    std::vector<unsigned char> gamma_corrected(pixels);
-    std::vector<unsigned char> reordered(4 * pixels);
-
-    // Fill with a simple gradient pattern
-    for (int i = 0; i < pixels; ++i) {
-        rgb[4*i + 0] = static_cast<unsigned char>(i * 3);   // R
-        rgb[4*i + 1] = static_cast<unsigned char>(i * 2);   // G
-        rgb[4*i + 2] = static_cast<unsigned char>(i * 1);   // B
-        rgb[4*i + 3] = 255;                                   // A (opaque)
+    // ================================================================
+    // Load PNG image
+    // ================================================================
+    std::vector<unsigned char> imageData;
+    int width, height;
+    
+    if (!readPNG(inputFile, imageData, width, height)) {
+        return 1;
     }
 
-    // ----------------------------------------------------------------
-    // Allocate device memory
-    // ----------------------------------------------------------------
+    int pixels = width * height;
+
+    // ================================================================
+    // Allocate device memory (based on actual image size)
+    // ================================================================
     unsigned char* d_rgb  = nullptr;
     unsigned char* d_grey = nullptr;
     unsigned char* d_mask = nullptr;
@@ -154,9 +171,19 @@ int main(int argc, char* argv[]) {
     check(cudaMalloc(&d_pipeline_a, 4 * pixels), "alloc d_pipeline_a");
     check(cudaMalloc(&d_pipeline_b, 4 * pixels), "alloc d_pipeline_b");
 
+    // Prepare host-side buffers
+    std::vector<unsigned char> rgb = imageData;
+    std::vector<unsigned char> grey(pixels);
+    std::vector<unsigned char> mask(pixels);
+    std::vector<unsigned char> inverted(pixels);
+    std::vector<unsigned char> brightened(pixels);
+    std::vector<unsigned char> gamma_corrected(pixels);
+    std::vector<unsigned char> reordered(4 * pixels);
+
     check(cudaMemcpy(d_rgb, rgb.data(), 4 * pixels,
                      cudaMemcpyHostToDevice),
           "copy rgba to device");
+
 
     // ----------------------------------------------------------------
     // Setup grid and block dimensions
@@ -200,30 +227,75 @@ int main(int argc, char* argv[]) {
     }
 
     // ================================================================
-    // Copy Final Result Back to Host
+    // Copy Final Result Back to Host and Save
     // ================================================================
-    std::vector<unsigned char> final_result(4 * pixels);
-    check(cudaMemcpy(final_result.data(), current_output, 4 * pixels,
-                     cudaMemcpyDeviceToHost),
-          "copy final result to host");
+    // Check if the final output is single-channel or RGBA.
+    // Note: this loop intentionally overwrites `is_single_channel` for each filter
+    // so that the value after the loop reflects the *last* filter in the chain,
+    // whose output format is the one that will be written to disk.
+    bool is_single_channel = false;
+    for (const auto& op : filters) {
+        // These filters output single-channel greyscale
+        if (op.kernel_type == "greyscale" || op.kernel_type == "threshold" || 
+            op.kernel_type == "invert" || op.kernel_type == "brightness" || 
+            op.kernel_type == "gamma") {
+            is_single_channel = true;
+        }
+        // Channel extraction also produces single-channel
+        else if (op.kernel_type == "channel") {
+            is_single_channel = true;
+        }
+        // Normalize produces single-channel
+        else if (op.kernel_type == "normalize") {
+            is_single_channel = true;
+        }
+        // Reorder produces RGBA
+        else if (op.kernel_type == "reorder") {
+            is_single_channel = false;
+        }
+    }
+    
+    std::vector<unsigned char> final_result;
+    
+    if (is_single_channel) {
+        // If output is single-channel, need to convert to RGBA for PNG output
+        std::vector<unsigned char> grey_result(pixels);
+        check(cudaMemcpy(grey_result.data(), current_output, pixels,
+                         cudaMemcpyDeviceToHost),
+              "copy greyscale result to host");
 
-    std::cout << "=== Final Result (first 10 pixels) ===\n";
-    for (int i = 0; i < std::min(10, pixels); ++i) {
-        unsigned char r = final_result[4*i + 0];
-        unsigned char g = final_result[4*i + 1];
-        unsigned char b = final_result[4*i + 2];
-        unsigned char a = final_result[4*i + 3];
-
-        std::cout << "Pixel " << i << ": RGBA("
-                  << static_cast<int>(r) << ", "
-                  << static_cast<int>(g) << ", "
-                  << static_cast<int>(b) << ", "
-                  << static_cast<int>(a) << ")\n";
+        // Convert greyscale to RGBA (replicate grey value to R, G, B and set A to 255)
+        final_result.resize(static_cast<std::size_t>(pixels) * 4);
+        unsigned char* dst = final_result.data();
+        const unsigned char* src = grey_result.data();
+        for (std::size_t i = 0; i < static_cast<std::size_t>(pixels); ++i) {
+            const unsigned char g = src[i];
+            dst[0] = g;   // R
+            dst[1] = g;   // G
+            dst[2] = g;   // B
+            dst[3] = 255; // A
+            dst += 4;
+        }
+    } else {
+        // RGBA output - copy directly
+        final_result.resize(static_cast<std::size_t>(pixels) * 4);
+        check(cudaMemcpy(final_result.data(), current_output, 4 * pixels,
+                         cudaMemcpyDeviceToHost),
+              "copy RGBA result to host");
     }
 
-    // ----------------------------------------------------------------
+    // ================================================================
+    // Save PNG image
+    // ================================================================
+    if (!writePNG(outputFile, final_result, width, height)) {
+        return 1;
+    }
+
+    std::cout << "✓ Output saved to: " << outputFile << "\n\n";
+
+    // ================================================================
     // Cleanup
-    // ----------------------------------------------------------------
+    // ================================================================
     cudaFree(d_rgb);
     cudaFree(d_grey);
     cudaFree(d_mask);

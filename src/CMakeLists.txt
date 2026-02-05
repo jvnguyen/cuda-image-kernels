@@ -15,15 +15,19 @@ target_include_directories(kernel_handlers_lib
     PUBLIC ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}
 )
 
+# Find libpng
+find_package(PNG REQUIRED)
+
 # ------------------------------------------------------------
 # Driver executable
 # ------------------------------------------------------------
 add_executable(run_kernels
     main.cpp
+    png_utils.cpp
 )
 
 target_link_libraries(run_kernels
-    PRIVATE kernel_handlers_lib
+    PRIVATE kernel_handlers_lib PNG::PNG
 )
 
 

@@ -13,7 +13,6 @@ add_executable(kernel_tests
 
 # Set CUDA as a language for this target
 set_target_properties(kernel_tests PROPERTIES CUDA_RESOLVE_DEVICE_SYMBOLS ON)
-target_compile_features(kernel_tests PRIVATE cxx_std_17)
 
 # Link against the kernel handlers library and Google Test
 target_link_libraries(kernel_tests

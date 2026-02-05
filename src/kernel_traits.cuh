@@ -9,6 +9,15 @@
 #include "channel.cuh"
 #include "reorder.cuh"
 #include "normalize.cuh"
+#include "greyscale_to_rgba.cuh"
+
+// ============================================================
+// Image Format Tags
+// ============================================================
+// Tags to specify input and output image formats
+
+struct GreyscaleFormat {};  // Single-channel greyscale (1 byte per pixel)
+struct RGBAFormat {};       // 4-channel RGBA (4 bytes per pixel)
 
 // ============================================================
 // Kernel Type Tags
@@ -23,6 +32,7 @@ struct GammaKernelTag {};
 struct ChannelKernelTag {};
 struct ReorderKernelTag {};
 struct NormalizeKernelTag {};
+struct GreyscaleToRGBAKernelTag {};
 
 // ============================================================
 // Generic Kernel Traits
@@ -41,6 +51,8 @@ struct KernelTraits<GreyscaleKernelTag, InputType, OutputType>
 {
     using InputTypeT = InputType;
     using OutputTypeT = OutputType;
+    using InputFormat = RGBAFormat;    // Input: RGBA
+    using OutputFormat = GreyscaleFormat;  // Output: Greyscale
 
     // Launches greyscale kernel with no additional parameters
     static void launch(
@@ -66,6 +78,8 @@ struct KernelTraits<ThresholdKernelTag, InputType, OutputType>
 {
     using InputTypeT = InputType;
     using OutputTypeT = OutputType;
+    using InputFormat = RGBAFormat;     // Input: RGBA
+    using OutputFormat = GreyscaleFormat;  // Output: Greyscale
 
     // Launches threshold kernel with an additional threshold parameter
     static void launch(
@@ -92,6 +106,8 @@ struct KernelTraits<InvertKernelTag, InputType, OutputType>
 {
     using InputTypeT = InputType;
     using OutputTypeT = OutputType;
+    using InputFormat = RGBAFormat;     // Input: RGBA
+    using OutputFormat = GreyscaleFormat;  // Output: Greyscale
 
     // Launches invert kernel with no additional parameters
     static void launch(
@@ -117,6 +133,8 @@ struct KernelTraits<BrightnessKernelTag, InputType, OutputType>
 {
     using InputTypeT = InputType;
     using OutputTypeT = OutputType;
+    using InputFormat = RGBAFormat;     // Input: RGBA
+    using OutputFormat = GreyscaleFormat;  // Output: Greyscale
 
     // Launches brightness kernel with a brightness scale factor
     static void launch(
@@ -143,6 +161,8 @@ struct KernelTraits<GammaKernelTag, InputType, OutputType>
 {
     using InputTypeT = InputType;
     using OutputTypeT = OutputType;
+    using InputFormat = RGBAFormat;     // Input: RGBA
+    using OutputFormat = GreyscaleFormat;  // Output: Greyscale
 
     // Launches gamma kernel with a gamma correction factor
     static void launch(
@@ -169,6 +189,8 @@ struct KernelTraits<ChannelKernelTag, InputType, OutputType>
 {
     using InputTypeT = InputType;
     using OutputTypeT = OutputType;
+    using InputFormat = RGBAFormat;     // Input: RGBA
+    using OutputFormat = GreyscaleFormat;  // Output: Greyscale
 
     // Launches channel extraction kernel with channel index parameter
     static void launch(
@@ -195,6 +217,8 @@ struct KernelTraits<ReorderKernelTag, InputType, OutputType>
 {
     using InputTypeT = InputType;
     using OutputTypeT = OutputType;
+    using InputFormat = RGBAFormat;     // Input: RGBA
+    using OutputFormat = RGBAFormat;    // Output: RGBA
 
     // Launches channel reorder kernel
     // Uses 4 float parameters encoding channel indices
@@ -228,6 +252,8 @@ struct KernelTraits<NormalizeKernelTag, InputType, OutputType>
 {
     using InputTypeT = InputType;
     using OutputTypeT = OutputType;
+    using InputFormat = RGBAFormat;     // Input: RGBA
+    using OutputFormat = GreyscaleFormat;  // Output: Greyscale
 
     // Launches normalize kernel (histogram stretching)
     // Takes no parameters - normalizes based on min/max values in image
@@ -241,6 +267,33 @@ struct KernelTraits<NormalizeKernelTag, InputType, OutputType>
     )
     {
         launchNormalizeRGBA<InputType, OutputType>(
+            d_input, d_output, width, height, grid, block
+        );
+    }
+};
+
+// ============================================================
+// Greyscale to RGBA Conversion Kernel Traits
+// ============================================================
+template<typename InputType, typename OutputType>
+struct KernelTraits<GreyscaleToRGBAKernelTag, InputType, OutputType>
+{
+    using InputTypeT = InputType;
+    using OutputTypeT = OutputType;
+    using InputFormat = GreyscaleFormat;  // Input: Greyscale
+    using OutputFormat = RGBAFormat;      // Output: RGBA
+
+    // Launches greyscale to RGBA conversion kernel
+    static void launch(
+        const InputType* d_input,
+        OutputType* d_output,
+        int width,
+        int height,
+        dim3 grid,
+        dim3 block
+    )
+    {
+        launchGreyscaleToRGBAKernel<InputType, OutputType>(
             d_input, d_output, width, height, grid, block
         );
     }

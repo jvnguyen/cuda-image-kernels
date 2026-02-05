@@ -159,6 +159,20 @@ void handleReorder(const KernelContext& ctx, float param, const std::string& ext
 void handleNormalize(const KernelContext& ctx, float param, const std::string& extra, unsigned char* output);
 
 // ============================================================
+// Greyscale to RGBA Conversion
+// ============================================================
+
+/// @brief Convert single-channel greyscale image to RGBA on the GPU.
+///
+/// Converts a single-channel greyscale image to RGBA by replicating the grey value
+/// across R, G, B channels and setting alpha to full opacity (255).
+///
+/// @param ctx Kernel execution context containing device memory and grid/block dimensions
+/// @param input Device pointer to input greyscale image (size: width*height bytes)
+/// @param output Device pointer to output RGBA image (size: width*height*4 bytes)
+void convertGreyscaleToRGBA(const KernelContext& ctx, unsigned char* input, unsigned char* output);
+
+// ============================================================
 // Kernel Handler Registry
 // ============================================================
 
